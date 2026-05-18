@@ -78,11 +78,16 @@ async def interview_endpoint(websocket: WebSocket):
                 # CV 데이터 추출 (없을 경우 디폴트 'neutral', 0.0)
                 expression = message.get("expression", "neutral")
                 expr_prob = message.get("expression_probability", 0.0)
+                gaze_focus = message.get("gaze_focus", 1.0) # 시선 집중도 (디폴트 1.0)
+                
+                # 표정 안정도 산출
                 expr_score = get_expression_score(expression, expr_prob)
+                
+                # 정서 점수와 시선 집중도를 결합하여 최종 비언어적(CV) 점수 산출 (예: 표정 70% + 시선 30%)
+                final_cv_score = (expr_score * 0.7) + (gaze_focus * 0.3)
 
-                # 1. 의미론적 에너지 분석 (시뮬레이션)
-                logprobs_mock = [random.uniform(-0.5, -0.01) for _ in range(5)]
-                uncertainty = session_semantic.get_metacognitive_uncertainty(user_text, logprobs_mock)
+                # 1. 의미론적 에너지 분석 (실제 텍스트 기반 언어학적 분석)
+                uncertainty = session_semantic.get_metacognitive_uncertainty(user_text)
                 
                 # 2. 논리 정합성 체크 (AI 기반 동적 체크)
                 consistent, logic_reason = await session_logic.check_consistency(user_text)
@@ -90,8 +95,8 @@ async def interview_endpoint(websocket: WebSocket):
                 # 초기 주제 설정 시에는 논리 점수를 관대하게 적용 (초기 붕괴 방지)
                 consistency_score = 1.0 if consistent or session_daap.current_depth == 0 else 0.4
                 
-                # 3. 생존 확률 업데이트 (CV 점수 반영)
-                survival_prob = session_daap.update_survival(consistency_score, uncertainty, expr_score)
+                # 3. 생존 확률 업데이트 (멀티모달 CV 점수 반영)
+                survival_prob = session_daap.update_survival(consistency_score, uncertainty, final_cv_score)
                 
                 # 4. CIQS 및 블룸 위계 평가 (AI 기반 동적 채점)
                 dynamic_scores = await session_evaluator.get_dynamic_scores(user_text, last_probe_content)
@@ -112,7 +117,8 @@ async def interview_endpoint(websocket: WebSocket):
                         "bloom_level": bloom_level,
                         "ciqs": ciqs,
                         "depth": session_daap.current_depth,
-                        "is_collapsed": session_daap.is_collapsed()
+                        "is_collapsed": session_daap.is_collapsed(),
+                        "reason": logic_reason # 변동 사유 추가
                     }
                 }))
 

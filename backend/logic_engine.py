@@ -18,7 +18,10 @@ class LogicEngine:
 
         context = "\n".join(self.history)
         prompt = f"""
-        당신은 논리학 전문가입니다. 지원자의 이전 답변들과 현재 답변 사이의 모순이 있는지 분석하십시오.
+        당신은 논리학 및 지식 검증 전문가입니다. 지원자의 답변을 다음 두 가지 관점에서 분석하십시오.
+        
+        1. 내부 일관성(Internal Consistency): 이전 답변들과 현재 답변 사이에 논리적 모순이 있는가?
+        2. 사실 정합성(Factual Grounding): 지원자가 주장하는 지식이나 사실이 객관적으로 타당한가? (틀린 지식을 자신 있게 말하는지 확인)
         
         [이전 답변들]
         {context}
@@ -27,7 +30,11 @@ class LogicEngine:
         {text}
         
         결과를 다음 JSON 형식으로만 응답하십시오:
-        {{"consistent": true/false, "reason": "이유 설명"}}
+        {{
+            "consistent": true/false, 
+            "reason": "모순점 또는 사실적 오류에 대한 구체적 설명",
+            "fact_check_score": 0.0~1.0 (지식의 정확성 점수)
+        }}
         """
         
         try:
@@ -38,7 +45,10 @@ class LogicEngine:
             )
             result = json.loads(response.choices[0].message.content)
             self.history.append(text)
-            return result.get("consistent", True), result.get("reason", "")
+            
+            # 일관성이 있더라도 사실 점수가 너무 낮으면(0.3 미만) 부적격 처리
+            is_valid = result.get("consistent", True) and result.get("fact_check_score", 1.0) >= 0.3
+            return is_valid, result.get("reason", "")
         except Exception as e:
             return True, str(e)
 

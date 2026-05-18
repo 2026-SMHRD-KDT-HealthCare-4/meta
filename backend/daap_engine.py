@@ -7,6 +7,7 @@ class DAAPEngine:
         self.survival_threshold = 0.20
         self.survival_probability = 1.0
         self.history = []
+        self.last_round_performance = 1.0 # 이전 라운드 성능 추적용
 
     def update_survival(self, consistency_score, semantic_uncertainty, expression_score=1.0):
         """
@@ -15,13 +16,23 @@ class DAAPEngine:
         semantic_uncertainty: 0 to 1 (from SemanticEngine)
         expression_score: 0 to 1 (from CV data, default 1.0)
         """
-        # Heuristic: Performance = Consistency * (1 - Uncertainty) * ExpressionScore
-        # expression_score acts as a multiplier for emotional stability
-        round_performance = consistency_score * (1.0 - semantic_uncertainty) * expression_score
+        # 현재 라운드 원시 성능 계산
+        raw_performance = consistency_score * (1.0 - semantic_uncertainty) * expression_score
         
-        # Ensure survival probability doesn't drop too fast due to a single bad frame
-        # We use a moving average or a dampened multiplier
-        self.survival_probability *= (0.8 + 0.2 * round_performance) 
+        # --- 쿠션(Cushion) 로직: 급격한 지표 변동 완화 ---
+        # 이전 라운드 성능과 현재 성능의 차이가 너무 클 경우 (급격한 하락 시)
+        # 차이의 50%만 반영하여 '쿠션'을 줌 (단, 한 번만 방어하고 다음에도 낮으면 하락폭 커짐)
+        if raw_performance < self.last_round_performance:
+            # 완화된 성능 = 이전 성능 - (성능 하락폭 * 0.5)
+            cushioned_performance = self.last_round_performance - ((self.last_round_performance - raw_performance) * 0.5)
+        else:
+            cushioned_performance = raw_performance
+            
+        self.last_round_performance = raw_performance # 실제 원시 성능은 다음 라운드를 위해 저장
+        
+        # 생존 확률 업데이트 (0.8 ~ 1.0 사이의 감쇄 계수 활용)
+        # raw_performance 대신 cushioned_performance를 사용하여 급변 방지
+        self.survival_probability *= (0.85 + 0.15 * cushioned_performance) 
         self.current_depth += 1
         
         return self.survival_probability
