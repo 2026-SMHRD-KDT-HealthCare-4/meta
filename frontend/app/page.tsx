@@ -288,54 +288,60 @@ export default function InterviewerConsole() {
         </div>
       </div>
 
-      {/* EXPANDED BOTTOM METRICS BAR (h-56) with INDIVIDUAL BORDERS */}
-      <div className="fixed bottom-0 left-0 right-0 h-56 bg-gray-950/95 backdrop-blur-3xl border-t border-gray-800 grid grid-cols-4 p-5 gap-6 z-40">
+      {/* EXPANDED BOTTOM METRICS BAR (h-56) with STANDARDIZED BOXES */}
+      <div className="fixed bottom-0 left-0 right-0 h-56 bg-gray-950/95 backdrop-blur-3xl border-t border-gray-800 grid grid-cols-4 p-6 gap-6 z-40">
         
         {/* Metric 1: Stability */}
-        <div className="border border-blue-500/20 bg-blue-500/5 rounded-3xl p-5 flex flex-col">
-          <p className="text-[10px] text-blue-500 font-black uppercase mb-4 tracking-widest">인지적 안정도 추이</p>
-          <div className="flex-1 relative">
+        <div className="border border-blue-500/20 bg-blue-500/5 rounded-[2rem] p-5 flex flex-col justify-between">
+          <p className="text-[12px] text-blue-500 font-black uppercase tracking-[0.2em]">인지적 안정도 추이</p>
+          <div className="flex-1 relative my-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={metricsHistory} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs><linearGradient id="cSurv" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={true} horizontal={false} />
-                <YAxis domain={[0, 1]} ticks={[0, 0.5, 1]} stroke="#444" fontSize={10} width={25} />
-                <Area type="monotone" dataKey="survival_probability" stroke="#3b82f6" strokeWidth={3} fill="url(#cSurv)" isAnimationActive={false} />
+                <YAxis domain={[0, 1]} ticks={[0, 0.5, 1]} stroke="#444" fontSize={11} width={25} />
+                <Area type="monotone" dataKey="survival_probability" stroke="#3b82f6" strokeWidth={4} fill="url(#cSurv)" isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          <p className="mt-2 text-xs font-mono font-bold text-blue-400">{(currentMetrics?.survival_probability || 0).toFixed(4)} stability_idx</p>
+          <div className="flex justify-between items-baseline">
+            <p className="text-sm font-mono font-black text-blue-400">{(currentMetrics?.survival_probability || 0).toFixed(4)}</p>
+            <p className="text-[10px] text-gray-600 font-bold uppercase">Stability_Idx</p>
+          </div>
         </div>
 
         {/* Metric 2: Uncertainty */}
-        <div className="border border-red-500/20 bg-red-500/5 rounded-3xl p-5 flex flex-col">
-          <p className="text-[10px] text-red-500 font-black uppercase mb-4 tracking-widest">지식 불확실성 측정</p>
-          <div className="flex-1 relative">
+        <div className="border border-red-500/20 bg-red-500/5 rounded-[2rem] p-5 flex flex-col justify-between">
+          <p className="text-[12px] text-red-500 font-black uppercase tracking-[0.2em]">지식 불확실성 측정</p>
+          <div className="flex-1 relative my-2">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={metricsHistory} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={true} horizontal={false} />
-                <YAxis domain={[0, 1]} ticks={[0, 0.5, 1]} stroke="#444" fontSize={10} width={25} />
-                <Line type="step" dataKey="semantic_energy" stroke="#ef4444" strokeWidth={3} dot={false} isAnimationActive={false} />
+                <YAxis domain={[0, 1]} ticks={[0, 0.5, 1]} stroke="#444" fontSize={11} width={25} />
+                <Line type="step" dataKey="semantic_energy" stroke="#ef4444" strokeWidth={4} dot={false} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <p className="mt-2 text-xs font-mono font-bold text-red-400">{(currentMetrics?.semantic_energy || 0).toFixed(4)} noise_factor</p>
+          <div className="flex justify-between items-baseline">
+            <p className="text-sm font-mono font-black text-red-400">{(currentMetrics?.semantic_energy || 0).toFixed(4)}</p>
+            <p className="text-[10px] text-gray-600 font-bold uppercase">Noise_Factor</p>
+          </div>
         </div>
 
         {/* Metric 3: Bloom Level */}
-        <div className="border border-white/10 bg-white/5 rounded-3xl p-5 flex flex-col items-center justify-center">
-          <p className="text-[10px] text-gray-500 font-black uppercase mb-2 tracking-widest">사고 단계</p>
-          <p className="text-8xl font-black text-white italic tracking-tighter">LV.{currentMetrics?.bloom_level || "0"}</p>
-          <p className="text-[10px] text-gray-600 mt-2 font-bold uppercase tracking-widest">Cognitive Depth</p>
+        <div className="border border-white/10 bg-white/5 rounded-[2rem] p-5 flex flex-col justify-between items-center">
+          <p className="text-[12px] text-gray-400 font-black uppercase tracking-[0.2em] w-full text-left">사고 위계 단계</p>
+          <p className="text-7xl font-black text-white italic tracking-tighter leading-none py-2">LV.{currentMetrics?.bloom_level || "0"}</p>
+          <p className="text-[11px] text-gray-600 font-black uppercase tracking-widest w-full text-right">Cognitive Depth</p>
         </div>
 
         {/* Metric 4: CIQS */}
-        <div className="border border-yellow-500/20 bg-yellow-500/5 rounded-3xl p-5 flex flex-col items-center justify-center">
-          <p className="text-[10px] text-yellow-600 font-black uppercase mb-2 tracking-widest">종합 역량 점수</p>
-          <p className="text-8xl font-black text-yellow-500 tracking-tighter drop-shadow-[0_0_30px_rgba(234,179,8,0.2)]">
+        <div className="border border-yellow-500/20 bg-yellow-500/5 rounded-[2rem] p-5 flex flex-col justify-between items-center">
+          <p className="text-[12px] text-yellow-600 font-black uppercase tracking-[0.2em] w-full text-left">종합 메타인지 점수</p>
+          <p className="text-7xl font-black text-yellow-500 tracking-tighter drop-shadow-[0_0_40px_rgba(234,179,8,0.25)] leading-none py-2">
             {currentMetrics?.ciqs?.toFixed(2) || "0.00"}
           </p>
-          <p className="text-[10px] text-yellow-700 mt-2 font-bold uppercase tracking-widest">Metacognition Index</p>
+          <p className="text-[11px] text-yellow-700 font-black uppercase tracking-widest w-full text-right">Metacognition Index</p>
         </div>
       </div>
 
