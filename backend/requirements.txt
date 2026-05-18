@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+z3-solver
+openai
+python-dotenv
+pydantic
+websockets
+numpy
