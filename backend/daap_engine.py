@@ -19,26 +19,49 @@ class DAAPEngine:
         # 현재 라운드 원시 성능 계산
         raw_performance = consistency_score * (1.0 - semantic_uncertainty) * expression_score
         
-        # --- 쿠션(Cushion) 로직: 급격한 지표 변동 완화 ---
-        # 이전 라운드 성능과 현재 성능의 차이가 너무 클 경우 (급격한 하락 시)
-        # 차이의 50%만 반영하여 '쿠션'을 줌 (단, 한 번만 방어하고 다음에도 낮으면 하락폭 커짐)
+        # --- 쿠션(Cushion) 로직: 변동 민감도 상향 조정 ---
+        # 기존 0.5에서 0.2로 축소하여 성능 변화가 더 즉각적으로 반영되도록 함
         if raw_performance < self.last_round_performance:
-            # 완화된 성능 = 이전 성능 - (성능 하락폭 * 0.5)
-            cushioned_performance = self.last_round_performance - ((self.last_round_performance - raw_performance) * 0.5)
+            # 하락폭의 20%만 방어 (기존 50% 대비 훨씬 민감해짐)
+            cushioned_performance = self.last_round_performance - ((self.last_round_performance - raw_performance) * 0.8)
         else:
             cushioned_performance = raw_performance
             
         self.last_round_performance = raw_performance # 실제 원시 성능은 다음 라운드를 위해 저장
         
-        # 생존 확률 업데이트 (0.8 ~ 1.0 사이의 감쇄 계수 활용)
-        # raw_performance 대신 cushioned_performance를 사용하여 급변 방지
-        self.survival_probability *= (0.85 + 0.15 * cushioned_performance) 
+        # 생존 확률 업데이트 계수 조정 (0.85+0.15 -> 0.70+0.30)
+        # 낮은 성능일 때 더 큰 폭으로 하락하도록 민감도 증가
+        self.survival_probability *= (0.70 + 0.30 * cushioned_performance) 
         self.current_depth += 1
         
         return self.survival_probability
 
+    def get_status(self):
+        """
+        현재 인터뷰 상태를 진단하여 수준별 상태를 반환합니다.
+        (보조 시스템용으로 변경: 강제 종료가 아닌 '상태 경고' 중심)
+        """
+        if self.survival_probability < 0.20:
+            return "LIMIT_REACHED", "지원자의 논리적 한계점이 감지되었습니다. 주제 전환을 권장합니다."
+        elif self.survival_probability < 0.50:
+            return "CAUTION", "논리적 일관성이 흔들리고 있습니다. 추가 검증이 필요합니다."
+        elif self.current_depth >= self.max_depth:
+            return "MAX_DEPTH", "충분한 탐침이 수행되었습니다. 인터뷰를 정리하거나 다른 주제로 넘어가십시오."
+        else:
+            return "STABLE", "정상적인 논리 흐름을 유지하고 있습니다."
+
     def is_collapsed(self):
-        return self.survival_probability < self.survival_threshold or self.current_depth >= self.max_depth
+        # UI/로직 호환성을 위해 유지하되, 강제 종료 조건은 대폭 완화하거나 제거 가능
+        return self.survival_probability < 0.10 # 임계치를 더 낮춤 (거의 완전 붕괴 시에만 알림)
+
+    def get_stats(self):
+        status_code, status_msg = self.get_status()
+        return {
+            "depth": self.current_depth,
+            "survival_probability": self.survival_probability,
+            "status_code": status_code,
+            "status_msg": status_msg
+        }
 
     def get_next_probe_instruction(self, user_text):
         """
@@ -62,10 +85,3 @@ class DAAPEngine:
         - "~습니까?", "~인가요?"와 같은 격식 있는 의문문 형식을 유지하십시오.
         - 출력 결과에 질문 외에 어떤 텍스트도 포함하지 마십시오.
         """
-
-    def get_stats(self):
-        return {
-            "depth": self.current_depth,
-            "survival_probability": self.survival_probability,
-            "is_collapsed": self.is_collapsed()
-        }

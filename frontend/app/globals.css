@@ -24,3 +24,88 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@media print {
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+  }
+  
+  /* Hide everything by default */
+  body > * {
+    display: none !important;
+  }
+
+  /* Only show the print container and its ancestors */
+  body > div:has(.print-container),
+  .print-container {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Reset modal styles for printing */
+  .print-modal {
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    border: none !important;
+    background: white !important;
+    box-shadow: none !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-scrollable {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    display: block !important;
+  }
+
+  .print-item {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 1px solid #eee !important;
+    background: white !important;
+    color: black !important;
+    margin-bottom: 20px !important;
+    padding: 20px !important;
+  }
+
+  /* Ensure text is black for printing */
+  .print-modal *, .print-item *, .print-scrollable * {
+    color: black !important;
+    background-color: transparent !important;
+    border-color: #ddd !important;
+  }
+
+  /* Specific color overrides for labels in print */
+  .print-label-question {
+    background-color: #f3f4f6 !important;
+    color: #374151 !important;
+  }
+  .print-label-answer {
+    background-color: #ebf5ff !important;
+    color: #1e40af !important;
+  }
+  
+  /* Remove scrollbars in print */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}

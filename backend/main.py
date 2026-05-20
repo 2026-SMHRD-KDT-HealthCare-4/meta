@@ -103,11 +103,14 @@ async def interview_endpoint(websocket: WebSocket):
                 bloom_level = dynamic_scores.get("bloom_level", 2)
                 relevance = dynamic_scores.get("relevance", 0.5)
                 ciqs = session_evaluator.calculate_ciqs(bloom_level, consistency_score, relevance)
+                grade_info = session_evaluator.get_grade_info(ciqs)
                 
                 # 5. 다음 탐침 질문 후보 생성 (Safe vs Creative) - 스트리밍 방식으로 지연 시간 체감 감소
                 probe_instruction = session_daap.get_next_probe_instruction(user_text)
                 
                 # 메트릭 먼저 전송하여 UI 업데이트
+                status_info = session_daap.get_stats()
+                
                 await websocket.send_text(json.dumps({
                     "type": "metrics_update",
                     "metrics": {
@@ -116,9 +119,14 @@ async def interview_endpoint(websocket: WebSocket):
                         "logic_consistency": consistent,
                         "bloom_level": bloom_level,
                         "ciqs": ciqs,
+                        "grade": grade_info["grade"],
+                        "grade_label": grade_info["label"],
+                        "grade_color": grade_info["color"],
                         "depth": session_daap.current_depth,
                         "is_collapsed": session_daap.is_collapsed(),
-                        "reason": logic_reason # 변동 사유 추가
+                        "status_code": status_info["status_code"],
+                        "status_msg": status_info["status_msg"],
+                        "reason": logic_reason 
                     }
                 }))
 
@@ -167,13 +175,12 @@ async def interview_endpoint(websocket: WebSocket):
                     "options": options
                 }))
                 
+                # 강제 종료 루프 제거: 대신 LIMIT_REACHED 알림만 전송
                 if session_daap.is_collapsed():
                     await websocket.send_text(json.dumps({
-                        "type": "terminal",
-                        "content": f"인지적 붕괴가 감지되었습니다. 사유: {logic_reason}",
-                        "stats": session_daap.get_stats()
+                        "type": "alert",
+                        "content": f"[시스템 경고] {status_info['status_msg']}"
                     }))
-                    break
 
             elif msg_type == "select":
                 # 질문이 최종 선택됨

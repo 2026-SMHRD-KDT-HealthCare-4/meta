@@ -40,11 +40,33 @@ class Evaluator:
 
     def calculate_ciqs(self, bloom_level, consistency, relevance):
         """
-        CIQS 종합 점수 계산
+        CIQS 종합 점수 계산 (보정됨)
         """
+        # 동문서답이나 무의미한 답변(relevance < 0.2)일 경우, 아무리 일관성이나 위계가 높아도 강한 패널티 부여
+        relevance_penalty = 1.0
+        if relevance < 0.2:
+            relevance_penalty = 0.3  # 관련성이 거의 없으면 총점을 70% 깎음
+            bloom_level = 1          # 엉뚱한 대답은 무조건 가장 낮은 인지 위계로 취급
+        
         effectiveness = consistency
         bloom_score = bloom_level / 6.0
         balance = relevance # 실제 관련성을 균형 지표로 사용
         
-        ciqs = 0.5 * effectiveness + 0.3 * bloom_score + 0.2 * balance
-        return ciqs
+        ciqs = (0.5 * effectiveness + 0.3 * bloom_score + 0.2 * balance) * relevance_penalty
+        return max(0.0, min(1.0, ciqs)) # 0 ~ 1 사이로 클리핑
+
+    def get_grade_info(self, ciqs):
+        """
+        CIQS 점수에 따른 5단계 등급 및 설명 반환
+        """
+        if ciqs >= 0.85:
+            return {"grade": "탁월 (S)", "label": "Strategic", "color": "#10b981"} # Green
+        elif ciqs >= 0.65:
+            return {"grade": "우수 (A)", "label": "Proficient", "color": "#3b82f6"} # Blue
+        elif ciqs >= 0.45:
+            return {"grade": "보통 (B)", "label": "Competent", "color": "#f59e0b"} # Amber
+        elif ciqs >= 0.25:
+            return {"grade": "부족 (C)", "label": "Developing", "color": "#fb923c"} # Orange
+        else:
+            return {"grade": "인지 붕괴 (F)", "label": "아 이건 아닌거 같다", "color": "#ef4444"} # Red
+
