@@ -6,3 +6,10 @@ python-dotenv
 pydantic
 websockets
 numpy
+chromadb
+pymupdf
+python-docx
+langchain-text-splitters
+pytesseract
+pdf2image
+python-multipart

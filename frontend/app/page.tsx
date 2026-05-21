@@ -63,6 +63,75 @@ export default function InterviewerConsole() {
 
   const [currentExpression, setCurrentExpression] = useState({ label: "neutral", probability: 0, gaze: 0 });
 
+  // RAG 관련 상태
+  const [files, setFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isInterviewStarted, setIsInterviewStarted] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setFiles(prev => [...prev, ...newFiles].slice(0, 5));
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files) {
+      const newFiles = Array.from(e.dataTransfer.files);
+      setFiles(prev => [...prev, ...newFiles].slice(0, 5));
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadFiles = async () => {
+    if (files.length === 0) {
+      setIsInterviewStarted(true);
+      return;
+    }
+
+    setIsUploading(true);
+    const formData = new FormData();
+    files.forEach(file => formData.append("files", file));
+    
+    try {
+      // localhost 대신 127.0.0.1 시도 (일부 환경 브라우저 이슈 대응)
+      const response = await fetch("http://127.0.0.1:8000/upload", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Server error");
+      }
+      
+      const data = await response.json();
+      setSessionId(data.session_id);
+      setIsInterviewStarted(true);
+    } catch (error) {
+      console.error("Upload failed:", error);
+      alert(`파일 업로드에 실패했습니다: ${error instanceof Error ? error.message : "네트워크 오류"}\n백엔드 서버가 실행 중인지 확인해 주세요.`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   // Auto-scroll to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -93,15 +162,27 @@ export default function InterviewerConsole() {
 
   useEffect(() => {
     setIsClient(true);
+    if (!isInterviewStarted) return;
+
     socketRef.current = new WebSocket("ws://localhost:8000/ws/interview");
 
-    socketRef.current.onopen = () => setIsConnected(true);
+    socketRef.current.onopen = () => {
+      setIsConnected(true);
+      // 세션 ID가 있으면 초기 메시지로 전송
+      socketRef.current?.send(JSON.stringify({ session_id: sessionId }));
+    };
     socketRef.current.onclose = () => setIsConnected(false);
     socketRef.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === "probe") {
         setMessages((prev) => [...prev, { role: "system", content: data.content, metrics: data.metrics }]);
         if (data.metrics?.depth !== undefined) setMetricsHistory((prev) => [...prev, data.metrics]);
+        
+        // 초기 추천 질문이 있으면 설정
+        if (data.initial_recommendations) {
+          setQuestionOptions(data.initial_recommendations);
+        }
+        
         setTimeout(startSTT, 100);
       } else if (data.type === "metrics_update") {
         if (data.metrics?.depth !== undefined) setMetricsHistory((prev) => [...prev, data.metrics]);
@@ -123,7 +204,6 @@ export default function InterviewerConsole() {
       } else if (data.type === "alert") {
         setMessages((prev) => [...prev, { role: "system", content: data.content }]);
       } else if (data.type === "terminal") {
-        // 면접 보조 시스템에서는 강제 종료 화면 대신 경고 메시지만 출력
         setMessages((prev) => [...prev, { role: "system", content: `🚨 [면접 전략 알림] ${data.content}` }]);
       }
     };
@@ -159,7 +239,7 @@ export default function InterviewerConsole() {
       socketRef.current?.close();
       stopSTT();
     };
-  }, [isTerminal]);
+  }, [isInterviewStarted, isTerminal]);
 
   const toggleListening = () => {
     if (isListening) stopSTT(); else startSTT();
@@ -201,6 +281,60 @@ export default function InterviewerConsole() {
   };
 
   if (!isClient) return null;
+
+  if (!isInterviewStarted) {
+    return (
+      <div className="flex h-screen bg-black text-white font-mono items-center justify-center p-8">
+        <div className="max-w-2xl w-full bg-gray-900 border border-gray-800 p-12 rounded-[3rem] shadow-2xl flex flex-col gap-8">
+          <div className="text-center">
+            <h1 className="text-4xl font-black text-blue-500 uppercase tracking-tighter mb-2">AI Metacognition Interview</h1>
+            <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">이력서 및 포트폴리오 업로드 (선택사항)</p>
+          </div>
+
+          <div 
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-3xl p-10 flex flex-col items-center gap-4 transition-all ${isDragging ? "border-blue-500 bg-blue-500/10" : "border-gray-800 hover:border-blue-500/50"}`}
+          >
+            <svg className={`w-12 h-12 transition-colors ${isDragging ? "text-blue-500" : "text-gray-700"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+            <div className="text-center">
+              <label className="cursor-pointer bg-gray-800 px-6 py-2 rounded-full text-xs font-black hover:bg-gray-700 transition-colors">
+                파일 선택 또는 드래그
+                <input type="file" multiple className="hidden" onChange={handleFileChange} accept=".pdf,.docx,.txt" />
+              </label>
+              <p className="mt-3 text-[10px] text-gray-600 uppercase font-bold">PDF, DOCX, TXT 지원 (최대 5개)</p>
+            </div>
+          </div>
+
+          {files.length > 0 && (
+            <div className="bg-black/40 rounded-2xl p-4 space-y-2">
+              <p className="text-[10px] text-blue-500 font-black uppercase mb-2">선택된 파일 목록</p>
+              {files.map((f, i) => (
+                <div key={i} className="flex justify-between items-center text-xs text-gray-400 group">
+                  <span className="truncate flex-1 pr-4">{f.name}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[9px] opacity-50">{(f.size/1024).toFixed(1)}KB</span>
+                    <button onClick={() => removeFile(i)} className="text-gray-600 hover:text-red-500 transition-colors">✕</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button 
+            onClick={uploadFiles} 
+            disabled={isUploading}
+            className={`w-full py-5 rounded-2xl text-[16px] font-black uppercase tracking-[0.4em] transition-all shadow-xl ${isUploading ? "bg-gray-800 text-gray-600" : "bg-blue-600 text-white hover:bg-white hover:text-blue-600"}`}
+          >
+            {isUploading ? "UPLOADING..." : "인터뷰 시작하기"}
+          </button>
+          
+          <p className="text-center text-[9px] text-gray-700 uppercase font-bold">세션 종료 시 모든 데이터는 즉시 영구 삭제됩니다.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-black text-white font-mono overflow-hidden">
@@ -284,8 +418,8 @@ export default function InterviewerConsole() {
                     <span className="text-[8px] font-black block mb-1 opacity-50 uppercase">B. Creative Focus</span>
                     <p className="text-sm leading-relaxed font-bold">{questionOptions[1]}</p>
                   </button>
-                  <button onClick={() => setIsManualInput(!isManualInput)} className={`p-4 border transition-all rounded-[1.5rem] text-center group ${isManualInput ? "bg-yellow-900/10 border-yellow-500/50 text-yellow-200" : "bg-black/40 border-gray-800/50 text-gray-600"}`}>
-                    <span className="text-[9px] font-black uppercase tracking-widest">{isManualInput ? "직접 입력 모드 활성화 중" : "[ 직접 질문 입력하기 ]"}</span>
+                  <button onClick={() => setIsManualInput(!isManualInput)} className={`p-4 border transition-all rounded-[1.5rem] text-center group hover:bg-yellow-600 hover:text-white ${isManualInput ? "bg-yellow-900/10 border-yellow-500/50 text-yellow-200" : "bg-black/40 border-gray-800/50 text-gray-600"}`}>
+                    <span className="text-[14px] font-black uppercase tracking-widest">{isManualInput ? "직접 입력 모드 활성화 중" : "[ 직접 질문 입력하기 ]"}</span>
                   </button>
                 </div>
               </div>

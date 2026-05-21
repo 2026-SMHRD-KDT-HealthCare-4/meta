@@ -57,16 +57,16 @@ class Evaluator:
 
     def get_grade_info(self, ciqs):
         """
-        CIQS 점수에 따른 5단계 등급 및 설명 반환
+        등급 컷을 상향 조정하여 S급 획득을 더 어렵게 만들고, 낮은 점수에 더 예민하게 반응합니다.
         """
-        if ciqs >= 0.85:
-            return {"grade": "탁월 (S)", "label": "Strategic", "color": "#10b981"} # Green
-        elif ciqs >= 0.65:
-            return {"grade": "우수 (A)", "label": "Proficient", "color": "#3b82f6"} # Blue
-        elif ciqs >= 0.45:
-            return {"grade": "보통 (B)", "label": "Competent", "color": "#f59e0b"} # Amber
-        elif ciqs >= 0.25:
-            return {"grade": "부족 (C)", "label": "Developing", "color": "#fb923c"} # Orange
+        if ciqs >= 0.90: # 0.85 -> 0.90
+            return {"grade": "초월 (S+)", "label": "Transcendent", "color": "#10b981"}
+        elif ciqs >= 0.75: # 0.65 -> 0.75
+            return {"grade": "우수 (A)", "label": "Mastery", "color": "#3b82f6"}
+        elif ciqs >= 0.55: # 0.45 -> 0.55
+            return {"grade": "보통 (B)", "label": "Competent", "color": "#f59e0b"}
+        elif ciqs >= 0.35: # 0.25 -> 0.35
+            return {"grade": "불안 (C)", "label": "Unstable", "color": "#fb923c"}
         else:
-            return {"grade": "인지 붕괴 (F)", "label": "아 이건 아닌거 같다", "color": "#ef4444"} # Red
+            return {"grade": "인지 붕괴 (F)", "label": "Critical Failure", "color": "#ef4444"}
 
