@@ -115,7 +115,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ onExpressionDetected }) => {
 
               const bestExpression = Object.entries(expressions).reduce((a: any, b: any) =>
                 a[1] > b[1] ? a : b
-              );
+              )as [string, number];
               
               onExpressionDetected(bestExpression[0], bestExpression[1], focusScore);
 
