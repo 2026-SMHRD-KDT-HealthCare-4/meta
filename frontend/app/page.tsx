@@ -338,7 +338,7 @@ export default function InterviewerConsole() {
 
   return (
     <div className="flex h-screen bg-black text-white font-mono overflow-hidden">
-      <div className="flex flex-1 pb-56 overflow-hidden">
+      <div className={`flex flex-1 pb-56 overflow-hidden no-print`}>
         
         {/* Left Monitor */}
         <div className="w-1/2 border-r border-gray-800 p-8 flex flex-col gap-6 bg-gray-900/30 overflow-hidden">
@@ -441,7 +441,7 @@ export default function InterviewerConsole() {
       </div>
 
       {/* EXPANDED BOTTOM METRICS BAR (h-56) with STANDARDIZED BOXES */}
-      <div className="fixed bottom-0 left-0 right-0 h-56 bg-gray-950/95 backdrop-blur-3xl border-t border-gray-800 grid grid-cols-5 p-6 gap-6 z-40">
+      <div className="fixed bottom-0 left-0 right-0 h-56 bg-gray-950/95 backdrop-blur-3xl border-t border-gray-800 grid grid-cols-5 p-6 gap-6 z-40 no-print">
         
         {/* Metric 1: Stability */}
         <div className="border border-blue-500/20 bg-blue-500/5 rounded-[2rem] p-5 flex flex-col justify-between">
@@ -513,59 +513,62 @@ export default function InterviewerConsole() {
 
       {/* AUDIT MODAL */}
       {isResultOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4 sm:p-8 print:bg-white print:p-0 print:static print:block print:z-0">
-          <div className="print-container w-full max-w-6xl h-full max-h-[95vh] bg-gray-900 border border-blue-500/30 p-6 sm:p-10 rounded-[2rem] shadow-2xl relative overflow-hidden flex flex-col border-blue-500/20 print-modal">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4 sm:p-8 print:bg-white print:p-0 print:static print:block print:z-0 print:overflow-visible">
+          <div className="print-container w-full max-w-6xl h-full max-h-[95vh] bg-gray-900 border border-blue-500/30 p-6 sm:p-10 rounded-[2rem] shadow-2xl relative overflow-hidden flex flex-col border-blue-500/20 print:bg-white print:border-none print:shadow-none print:max-h-none print:h-auto print:overflow-visible print:w-full">
             <button onClick={() => setIsResultOpen(false)} className="no-print absolute top-6 right-8 text-gray-500 hover:text-white font-mono text-2xl transition-all">✕</button>
-            <div className="mb-6 text-center sm:text-left">
-              <h1 className="text-3xl font-black text-white tracking-tighter leading-none print:text-black print:text-2xl print:mb-8">면접 기록</h1>
+            <div className="mb-6 text-center sm:text-left print:mb-10 print:block">
+              <h1 className="text-3xl font-black text-white tracking-tighter leading-none print:text-black print:text-4xl print:border-b-4 print:border-black print:pb-4">Interview Audit Report</h1>
+              <p className="hidden print:block text-xs font-bold text-gray-500 mt-2 uppercase tracking-[0.3em]">면접 상세 로그 및 통합 지표 분석 리포트</p>
             </div>
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-hide print-scrollable">
-              {messages.map((msg, idx) => (
-                <div key={idx} className={`p-5 rounded-2xl border print-item ${msg.role === "system" ? "bg-white/5 border-white/10" : "bg-blue-600/5 border-blue-500/20"}`}>
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-hide print:overflow-visible print:h-auto print:block">
+              <div className="print:block space-y-6">
+                <h2 className="hidden print:block text-xl font-black text-black border-l-8 border-blue-600 pl-4 mb-6">01. 면접 상세 기록</h2>
+                {messages.map((msg, idx) => (
+                  <div key={idx} className={`p-5 rounded-2xl border print:border-gray-200 print:bg-gray-50/50 print:mb-6 break-inside-avoid ${msg.role === "system" ? "bg-white/5 border-white/10" : "bg-blue-600/5 border-blue-500/20"}`}>
                     <div className="flex justify-between items-center mb-3">
-                        <span className={`text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest ${msg.role === "system" ? "bg-gray-800 text-gray-400 print-label-question" : "bg-blue-600 text-white print-label-answer"}`}>
-                            {msg.role === "system" ? "Question" : "Answer"}
-                        </span>
-                        {msg.metrics && (
-                            <div className="flex gap-4 text-[16px] font-mono font-bold no-print">
-                                <span className="text-blue-400">STABILITY: {msg.metrics.survival_probability.toFixed(2)}</span>
-                                <span className="text-red-400">NOISE: {msg.metrics.semantic_energy.toFixed(2)}</span>
-                                <span className="text-yellow-500">CIQS: {msg.metrics.ciqs.toFixed(2)}</span>
-                            </div>
-                        )}
-                    </div>
-                    <p className="text-base text-gray-100 leading-relaxed font-sans mb-4 print:text-black print:mb-2">{msg.content}</p>
-                    
-                    {/* 변동 사유 및 인사이트 표시 강화 - 인쇄 시에도 포함 (사용자 요청: 분석 인사이트가 핵심) */}
-                    {msg.metrics?.reason && (
-                        <div className="bg-black/60 border-l-4 border-blue-500 p-4 rounded-r-xl shadow-inner print:bg-white print:border-gray-300 print:border-l-2 print:shadow-none print:mt-4 print:py-2 print:px-4">
-                            <p className="text-[10px] text-blue-400 font-black uppercase mb-1 tracking-widest flex items-center gap-2 print:text-black print:font-bold">
-                                <svg className="w-3 h-3 no-print" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                분석 인사이트 (Analysis Insight)
-                            </p>
-                            <p className="text-sm text-gray-300 italic font-sans leading-relaxed print:text-gray-700 print:not-italic">
-                                {msg.metrics.reason}
-                            </p>
+                      <span className={`text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest ${msg.role === "system" ? "bg-gray-800 text-gray-400 print:bg-black print:text-white" : "bg-blue-600 text-white print:bg-blue-600 print:text-white"}`}>
+                        {msg.role === "system" ? "질문 (Question)" : "답변 (Answer)"}
+                      </span>
+                      {msg.metrics && (
+                        <div className="hidden print:flex gap-4 text-[10px] font-mono font-bold text-gray-400">
+                          <span>STABILITY: {msg.metrics.survival_probability.toFixed(2)}</span>
+                          <span>NOISE: {msg.metrics.semantic_energy.toFixed(2)}</span>
+                          <span>CIQS: {msg.metrics.ciqs.toFixed(2)}</span>
                         </div>
+                      )}
+                    </div>
+                    <p className="text-base text-gray-100 leading-relaxed font-sans mb-4 print:text-black print:text-base print:font-medium">{msg.content}</p>
+
+                    {msg.metrics?.reason && (
+                      <div className="bg-black/60 border-l-4 border-blue-500 p-4 rounded-r-xl shadow-inner print:bg-white print:border-gray-300 print:border-l-4 print:shadow-none print:mt-4">
+                        <p className="text-[10px] text-blue-400 font-black uppercase mb-1 tracking-widest print:text-blue-600">분석 인사이트</p>
+                        <p className="text-sm text-gray-300 italic font-sans leading-relaxed print:text-gray-600 print:not-italic">
+                          {msg.metrics.reason}
+                        </p>
+                      </div>
                     )}
-                </div>
-              ))}
+                  </div>
+                ))}
+              </div>
 
               {/* PDF 인쇄 시 최하단에 표시될 지표 섹션 */}
-              <div className="hidden print:block mt-12 pt-10 border-t-2 border-black break-inside-avoid">
-                <h2 className="text-3xl font-black mb-8 text-black tracking-tighter">지표</h2>
-                <div className="grid grid-cols-3 gap-6">
-                  <div className="border border-black p-6 rounded-xl">
-                    <p className="text-xs font-bold text-gray-600 uppercase mb-2">종합 메타인지 점수</p>
+              <div className="hidden print:block mt-12 pt-10 border-t-2 border-black break-inside-avoid print:block">
+                <h2 className="text-xl font-black text-black border-l-8 border-blue-600 pl-4 mb-8">02. 핵심 지표 리포트</h2>
+                <div className="print:flex print:items-stretch print:gap-4 w-full">
+                  <div className="flex-1 border-2 p-5 rounded-2xl bg-gray-50/30 print:border-opacity-50" style={{ borderColor: `${currentMetrics?.grade_color || "#3b82f6"}44`, backgroundColor: `${currentMetrics?.grade_color || "#3b82f6"}08` }}>
+                    <p className="text-[9px] font-black uppercase mb-2 tracking-widest" style={{ color: currentMetrics?.grade_color || "#3b82f6" }}>종합 메타인지 점수</p>
                     <p className="text-4xl font-black text-black">{(currentMetrics?.ciqs || 0).toFixed(2)}</p>
                   </div>
-                  <div className="border border-black p-6 rounded-xl">
-                    <p className="text-xs font-bold text-gray-600 uppercase mb-2">사고 위계 단계</p>
+                  <div className="flex-1 border-2 p-5 rounded-2xl bg-gray-50/30 print:border-opacity-50" style={{ borderColor: `${currentMetrics?.grade_color || "#3b82f6"}44`, backgroundColor: `${currentMetrics?.grade_color || "#3b82f6"}08` }}>
+                    <p className="text-[9px] font-black uppercase mb-2 tracking-widest" style={{ color: currentMetrics?.grade_color || "#3b82f6" }}>사고 위계 단계</p>
                     <p className="text-4xl font-black text-black">LV.{currentMetrics?.bloom_level || "0"}</p>
                   </div>
-                  <div className="border border-black p-6 rounded-xl">
-                    <p className="text-xs font-bold text-gray-600 uppercase mb-2">메타인지 역량 등급</p>
-                    <p className="text-3xl font-black text-black">{currentMetrics?.grade || "N/A"}</p>
+                  <div className="flex-[1.2] border-2 p-5 rounded-2xl bg-gray-50/30 print:border-opacity-50" style={{ borderColor: `${currentMetrics?.grade_color || "#3b82f6"}44`, backgroundColor: `${currentMetrics?.grade_color || "#3b82f6"}08` }}>
+                    <p className="text-[9px] font-black uppercase mb-2 tracking-widest" style={{ color: currentMetrics?.grade_color || "#3b82f6" }}>메타인지 역량 등급</p>
+                    <div className="flex items-baseline gap-2">
+                        <p className="text-3xl font-black text-black">{currentMetrics?.grade || "N/A"}</p>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase">({currentMetrics?.grade_label})</p>
+                    </div>
                   </div>
                 </div>
               </div>

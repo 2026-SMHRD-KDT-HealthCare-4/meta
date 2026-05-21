@@ -1,5 +1,31 @@
 @import "tailwindcss";
 
+@media print {
+  /* 1. 불필요한 모든 요소 강제 숨김 */
+  header, footer, nav, button, .no-print, .print-hidden, [role="button"] {
+    display: none !important;
+  }
+
+  /* 2. 리포트 본문 최적화 */
+  body {
+    background: white !important;
+    padding: 0 !important;
+    color: black !important;
+    overflow: visible !important;
+  }
+
+  /* 3. 인쇄 시 배경 및 테두리 강제 유지 */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 4. 레이아웃 리셋: 화면용 flex/grid 레이아웃이 인쇄를 방해하지 않도록 */
+  .flex, .grid {
+    display: block !important;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

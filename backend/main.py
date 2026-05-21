@@ -189,8 +189,8 @@ async def interview_endpoint(websocket: WebSocket):
                 ciqs = session_evaluator.calculate_ciqs(bloom_level, 1.0 if consistent else 0.4, relevance)
                 grade_info = session_evaluator.get_grade_info(ciqs)
                 
-                # 5. 다음 탐침 질문 생성 지시 (RAG 컨텍스트 주입)
-                probe_instruction = session_daap.get_next_probe_instruction(user_text, rag_context)
+                # 5. 다음 탐침 질문 생성 지시 (RAG 컨텍스트 및 관련성 점수 주입)
+                probe_instruction = session_daap.get_next_probe_instruction(user_text, rag_context, relevance=relevance)
                 
                 # 메트릭 먼저 전송
                 status_info = session_daap.get_stats()

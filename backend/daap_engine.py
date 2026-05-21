@@ -61,38 +61,53 @@ class DAAPEngine:
             "status_msg": status_msg
         }
 
-    def get_next_probe_instruction(self, user_text, rag_context=""):
+    def get_next_probe_instruction(self, user_text, rag_context="", relevance=1.0):
         """
-        Generates instructions for the LLM to create the next Socratic probe strictly in Korean.
-        If rag_context is provided, it incorporates candidate's background into the prompt.
+        답변의 퀄리티(relevance)와 현재 깊이(current_depth)에 따라 
+        전략적으로 3가지 모드 중 하나를 선택하여 프롬프트를 생성합니다.
         """
-        depth_label = "기초(Common)" if self.current_depth < 3 else "심화(Textbook)" if self.current_depth < 7 else "전문(Cutting-edge)"
+        # 1. Clarification Mode: 답변이 너무 짧거나(단답) 질문과 관련성이 낮을 때
+        if len(user_text.strip()) < 10 or relevance < 0.35:
+            mode_label = "질문 재확인(Clarification)"
+            mode_instruction = f"""
+            [모드: 답변 보강 요구]
+            지원자의 답변이 너무 짧거나 질문의 본질에서 벗어나 있습니다. 
+            방금 답변한 '{user_text}'에 대해 더 구체적인 이유나 실제 사례를 들어 다시 한번 설명해 달라고 정중하지만 단호하게 요청하십시오. 
+            무작정 꼬리 질문을 던지지 말고, 지원자가 자신의 생각을 제대로 펼칠 수 있도록 유도하십시오.
+            """
         
-        rag_instruction = ""
-        if rag_context:
-            rag_instruction = f"""
-            [지원자 배경 정보 (이력서/포트폴리오 추출)]
-            {rag_context}
+        # 2. Topic Switch Mode: 한 주제에 대해 충분히 파고들었을 때 (depth 4~5 배수 또는 생존확률 안정 시)
+        elif self.current_depth > 0 and (self.current_depth % 5 == 0):
+            mode_label = "주제 전환(Topic Switch)"
+            mode_instruction = f"""
+            [모드: 주제 전환 및 국면 전환]
+            현재 주제에 대한 검증은 충분히 이루어졌습니다. 지원자의 메타인지 역량 파악을 위해 새로운 국면으로 넘어가야 합니다.
+            "해당 부분에 대해서는 충분히 이해했습니다"라고 짧게 정리한 뒤, 
+            이력서나 포트폴리오(RAG 컨텍스트)에 기재된 '전혀 새로운 다른 프로젝트나 기술적 경험'에 대해 질문을 던지십시오.
+            """
             
-            위 정보를 바탕으로 지원자의 답변이 본인의 경험이나 기술 스택과 어떻게 연계되는지, 혹은 모순되거나 보완이 필요한 지점이 있는지 날카롭게 파고드십시오.
+        # 3. Deep Dive Mode: 정상적인 답변 시 (핵심 메타인지 탐침)
+        else:
+            mode_label = "심층 탐침(Deep Dive)"
+            mode_instruction = f"""
+            [모드: 핵심 메타인지 분석]
+            지원자의 답변에서 논리적 허점, 검증되지 않은 가정, 또는 개념적 모호함을 찾아내십시오.
+            지원자가 자신의 인지 과정을 되돌아보게 만드는 날카로운 소크라테스식 질문이어야 합니다.
+            지원자의 배경 정보({rag_context[:100]}...)와 현재 답변 사이의 연결성을 파고드십시오.
             """
 
+        depth_label = "기초" if self.current_depth < 3 else "심화" if self.current_depth < 7 else "전문"
+        
         return f"""
         당신은 면접관의 질문을 보조하는 고도의 메타인지 분석 에이전트입니다.
+        현재 전략 모드: {mode_label}
         현재 탐침 깊이: {self.current_depth} ({depth_label} 단계)
-        지원자의 마지막 발언: {user_text}
         
-        {rag_instruction}
+        {mode_instruction}
         
         [지시사항 - 절대 준수]
-        1. 지원자의 답변에서 논리적 허점, 검증되지 않은 가정, 또는 개념적 모호함을 찾아내십시오.
-        2. 이력서 정보가 있다면, 답변과 이력서 내용 사이의 간극을 메타인지적으로 질문하십시오.
-        3. 만약 지원자의 답변이 너무 짧거나 분석할 내용이 부족하다면, 현재 주제와 관련된 근본적인 정의나 원리를 묻는 질문을 던지십시오.
-        4. 반드시 '질문'만 생성하십시오. "정보가 부족하다", "분석 결과" 등의 메타 발언이나 설명은 절대 하지 마십시오.
-        5. 지원자가 자신의 인지 과정을 되돌아보게 만드는 날카로운 소크라테스식 질문이어야 합니다.
-        
-        [언어 및 형식]
-        - 반드시 **한국어**로만 답변하십시오. 
-        - "~습니까?", "~인가요?"와 같은 격식 있는 의문문 형식을 유지하십시오.
-        - 출력 결과에 질문 외에 어떤 텍스트도 포함하지 마십시오.
+        1. 반드시 '질문'만 생성하십시오. "분석 결과" 등의 메타 발언은 절대 금지합니다.
+        2. {mode_label}의 취지에 맞게 질문을 구성하십시오.
+        3. 반드시 **한국어**로만 답변하십시오. 
+        4. "~습니까?", "~인가요?"와 같은 격식 있는 의문문 형식을 유지하십시오.
         """
