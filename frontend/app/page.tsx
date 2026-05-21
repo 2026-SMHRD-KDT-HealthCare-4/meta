@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
+import Link from "next/link";
 import CameraFeed from "./components/CameraFeed";
 
 interface Metric {
@@ -321,6 +322,15 @@ export default function InterviewerConsole() {
               ))}
             </div>
           )}
+
+          <div className="text-center -mb-4">
+            <Link 
+              href="/coverletter" 
+              className="text-xs text-gray-500 hover:text-blue-400 underline underline-offset-4 transition-colors font-bold uppercase"
+            >
+              자기소개서가 없다면?
+            </Link>
+          </div>
 
           <button 
             onClick={uploadFiles} 

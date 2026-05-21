@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+chromadb
+langchain
+langchain-openai
+openai
+scikit-learn
+python-docx
+xmltodict
+pydantic
+python-dotenv
